@@ -1,10 +1,10 @@
-    // ================================
+// ================================
 // 🎧 SYNCVERSE — Final Fixed & Working JS
 // ================================
 
 // Import Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, get, set, update, onValue} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // 🔹 Firebase Config
 const firebaseConfig = {
@@ -59,11 +59,13 @@ function onPlayerStateChange(event) {
   if (roomId && event.data === YT.PlayerState.PLAYING) {
     update(ref(database, `rooms/${roomId}/player`), {
       state: "PLAYING",
+      videoId: currentSong,
       time: player.getCurrentTime(),
     });
   } else if (roomId && event.data === YT.PlayerState.PAUSED) {
     update(ref(database, `rooms/${roomId}/player`), {
       state: "PAUSED",
+      videoId: currentSong,
       time: player.getCurrentTime(),
     });
   }
@@ -93,7 +95,36 @@ if (!username) {
 
 // ================================
 // 🏠 Join Room
-// ================================
+/* ================================
+document.getElementById('joinRoom').addEventListener('click', async () => {
+  const input = document.getElementById('roomId');
+  const roomIdInput = input.value.trim();
+
+  if (roomIdInput.length !== 6) {
+    alert('Room ID must be exactly 6 characters.');
+    return; // stop further processing
+  }
+
+  roomId = roomIdInput;
+  // Proceed with joining/creating the room
+  input.value = roomId;
+
+  const roomRef = ref(database, `rooms/${roomId}`);
+  const snapshot = await get(roomRef);
+
+  if (!snapshot.exists()) {
+    await set(roomRef, {
+      playlist: [],
+      chat: [],
+      users: {},
+      player: {}
+    });
+    alert(`✅ New room created: ${roomId}`);
+  } else {
+    alert(` 🔹 Joined existing room: ${roomId}`);
+  }
+});*/
+
 document.getElementById("joinRoom").addEventListener("click", async () => {
   const input = document.getElementById("roomId");
   roomId = input.value.trim() || Math.random().toString(36).substr(2, 9);
@@ -111,6 +142,7 @@ document.getElementById("joinRoom").addEventListener("click", async () => {
 
   joinRoom();
 });
+
 
 function joinRoom() {
   set(ref(database, `rooms/${roomId}/users/${userId}`), {
@@ -140,7 +172,7 @@ function listenToRoom() {
   // Player
   onValue(ref(database, `rooms/${roomId}/player`), (snapshot) => {
     const data = snapshot.val();
-    if (!data || !playerReady) return;
+    if (!data || !playerReady) return;  
 
     if (data.videoId && data.videoId !== currentSong) {
       currentSong = data.videoId;
@@ -154,6 +186,10 @@ function listenToRoom() {
         ? found.title
         : "Playing...";
     }
+    // Timeline sync (ADD THIS SECTION)
+  if (data.time !== undefined) {
+    player.seekTo(data.time, true);
+  }
 
     if (data.state === "PLAYING") player.playVideo();
     else if (data.state === "PAUSED") player.pauseVideo();
